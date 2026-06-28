@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FF TW OAuth Callback</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --fg: #e6e6e6;
+      --muted: #8a8f98;
+      --accent: #25f4ee;
+      --warn: #fe2c55;
+      --card: #1a1d24;
+      --border: #2a2f3a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Noto Sans TC", sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 720px;
+      width: 100%;
+    }
+    h1 { margin: 0 0 8px; font-size: 22px; }
+    .sub { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+    .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 20px; }
+    .value {
+      background: #0a0c10;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+      font-size: 14px;
+      word-break: break-all;
+      margin-top: 6px;
+      position: relative;
+    }
+    .value.empty { color: var(--muted); font-style: italic; }
+    button {
+      margin-top: 10px;
+      background: var(--accent);
+      color: #0a0c10;
+      border: 0;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    button:hover { opacity: 0.9; }
+    button:disabled { background: #555; color: #999; cursor: not-allowed; }
+    .ok { color: var(--accent); }
+    .warn { color: var(--warn); }
+    .note { color: var(--muted); font-size: 13px; line-height: 1.6; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>TikTok OAuth Callback — FF TW Marketing Analytics</h1>
+    <p class="sub">If you arrived here from TikTok, an authorization code is in the URL. Copy it into the CLI script to finish the flow.</p>
+
+    <div class="label">Authorization code</div>
+    <div id="code" class="value empty">(no code in URL)</div>
+    <button id="copyBtn" disabled>Copy code</button>
+
+    <div class="label">State</div>
+    <div id="state" class="value empty">(no state)</div>
+
+    <div class="label">Scopes</div>
+    <div id="scopes" class="value empty">(no scopes)</div>
+
+    <div class="label">Error (if any)</div>
+    <div id="error" class="value empty">(none)</div>
+
+    <p class="note">
+      This is an internal OAuth helper page used only to receive the authorization code from TikTok and surface it for the CLI script that runs locally.
+      No data is transmitted, stored, or shared by this page. The code is short-lived (a few minutes) and only useful when combined with the matching client secret.
+    </p>
+  </div>
+
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const state = params.get('state');
+      const scopes = params.get('scopes');
+      const error = params.get('error');
+      const errorDesc = params.get('error_description');
+
+      const codeEl = document.getElementById('code');
+      const stateEl = document.getElementById('state');
+      const scopesEl = document.getElementById('scopes');
+      const errorEl = document.getElementById('error');
+      const btn = document.getElementById('copyBtn');
+
+      function set(el, val) {
+        if (val) {
+          el.textContent = val;
+          el.classList.remove('empty');
+        }
+      }
+
+      set(codeEl, code);
+      set(stateEl, state);
+      set(scopesEl, scopes);
+
+      if (error) {
+        set(errorEl, error + (errorDesc ? ': ' + errorDesc : ''));
+        errorEl.classList.add('warn');
+      }
+
+      if (code) {
+        btn.disabled = false;
+        btn.addEventListener('click', async function () {
+          try {
+            await navigator.clipboard.writeText(code);
+            btn.textContent = 'Copied ✓';
+            btn.classList.add('ok');
+            setTimeout(() => { btn.textContent = 'Copy code'; btn.classList.remove('ok'); }, 2000);
+          } catch (e) {
+            // Fallback: select the code element
+            const range = document.createRange();
+            range.selectNode(codeEl);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            btn.textContent = 'Select & Ctrl+C';
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
