@@ -1,0 +1,60 @@
+name: Track Threads Followers Daily
+
+on:
+  schedule:
+    - cron: '0 1 * * *'  # 每天 UTC 01:00 = 台灣時間 09:00
+  workflow_dispatch:       # 也可手動觸發
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests gspread google-auth
+
+      - name: Run tracker
+        env:
+          THREADS_LONG_LIVED_TOKEN: ${{ secrets.THREADS_LONG_LIVED_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          GSHEET_ID: ${{ secrets.GSHEET_ID }}
+        run: |
+          python - <<'EOF'
+          import os, requests, json
+          from datetime import datetime, timezone
+
+          import gspread
+          from google.oauth2.service_account import Credentials
+
+          # --- Threads ---
+          token = os.environ["THREADS_LONG_LIVED_TOKEN"]
+          user_id = os.environ["THREADS_USER_ID"]
+
+          resp = requests.get(
+              f"https://graph.threads.net/v1.0/{user_id}/threads_insights",
+              params={"access_token": token, "metric": "followers_count"},
+          )
+          resp.raise_for_status()
+          followers = resp.json()["data"][0]["total_value"]["value"]
+          today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+          # --- Google Sheets ---
+          sa_info = json.loads(os.environ["GCP_SA_KEY"])
+          creds = Credentials.from_service_account_info(
+              sa_info,
+              scopes=["https://www.googleapis.com/auth/spreadsheets"],
+          )
+          gc = gspread.authorize(creds)
+          sh = gc.open_by_key(os.environ["GSHEET_ID"])
+          ws = sh.sheet1
+          ws.append_row([today, followers])
+
+          print(f"OK: {today} = {followers:,}")
+          EOF
