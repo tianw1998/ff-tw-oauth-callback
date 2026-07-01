@@ -34,8 +34,8 @@ jobs:
           from google.oauth2.service_account import Credentials
 
           # --- Threads ---
-          token = os.environ["THREADS_LONG_LIVED_TOKEN"]
-          user_id = os.environ["THREADS_USER_ID"]
+          token = os.environ["THREADS_LONG_LIVED_TOKEN"].strip()
+          user_id = os.environ["THREADS_USER_ID"].strip()
 
           resp = requests.get(
               f"https://graph.threads.net/v1.0/{user_id}/threads_insights",
