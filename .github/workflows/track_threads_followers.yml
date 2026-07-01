@@ -54,7 +54,7 @@ jobs:
               scopes=["https://www.googleapis.com/auth/spreadsheets"],
           )
           gc = gspread.authorize(creds)
-          sh = gc.open_by_key(os.environ["GSHEET_ID"])
+          sh = gc.open_by_key(os.environ["GSHEET_ID"].strip())
           ws = sh.sheet1
           ws.append_row([today, followers])
 
